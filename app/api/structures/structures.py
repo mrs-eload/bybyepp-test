@@ -1,49 +1,73 @@
 import logging
 import random
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Body
+from typing import Optional, List
+from fastapi import APIRouter, HTTPException, Body, Response
+from app.core.config import settings
 from app.models.Structure import Structure
+from app.services.RedisService import redis_service
 
 logger = logging.getLogger('3decision.api.structures')
 router = APIRouter()
 
-@router.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-@router.get("/structures", response_model=list)
-def read_structure(q: Optional[str] = None):
-    items =  Structure.get_all()
-    if items is None: return []
-    return items
+@router.get("/", response_model=list)
+def read_structures(q: Optional[str] = None):
+    db = redis_service.get_connection(settings.REDIS_DB)
+    result = db.hgetall('structures')
+    return Structure.parse_result(result)
 
 
-@router.get("/structures/{external_code}", response_model=Structure)
+@router.post("/", response_model=Structure)
+def read_structure(structure: Structure = Body(...), q: Optional[str] = None):
+    db = redis_service.get_connection(settings.REDIS_DB)
+    result = db.hget('structures', structure.external_code)
+    result = Structure.parse_result(result)
+    if result is not None: raise HTTPException(303, '/structures/' + result.external_code)
+    structure.id = random.randint(1, 100000)
+    db.hmset('structures', {structure.external_code: structure.json()})
+    return structure
+
+
+@router.get("/{external_code}", response_model=Structure)
 def read_structure(external_code: str, q: Optional[str] = None):
-    item = Structure.find(external_code)
-    if item is None: raise HTTPException(404)
-    return item
+    db = redis_service.get_connection(settings.REDIS_DB)
+    result = db.hget('structures', external_code)
+    result = Structure.parse_result(result)
+    if result is None: raise HTTPException(404)
+    return result
+
+@router.delete("/{external_code}", response_model=dict)
+def read_structure(external_code: str, q: Optional[str] = None):
+    db = redis_service.get_connection(settings.REDIS_DB)
+    result = db.hget('structures', external_code)
+    if result is None: raise HTTPException(404)
+
+    db.hdel('structures', external_code)
+    return Response(status_code=204)
 
 
-@router.post("/structures", response_model=Structure)
-def read_structure(item: Structure = Body(...), q: Optional[str] = None):
-    result = Structure.find(item.external_code)
-    if result is not None: raise HTTPException(302, result.json())
-    item.id = random.randint(1, 100000)
-    new_structure = item.save()
-    return new_structure
-
-
-@router.put("/structures/{external_code}", response_model=Structure)
+@router.put("/{external_code}", response_model=Structure)
 def read_structure(external_code: str, item: Structure = Body(...), q: Optional[str] = None):
-    logger.info(external_code)
-    logger.info(item)
-    logger.info(item.external_code)
-
     if (item.external_code is not None and item.external_code != '') and external_code != item.external_code:
-        logger.error('Raising 400')
-        raise HTTPException(400)
+        raise HTTPException(400, "Request parameter doesn't match external code from Body")
 
     item.external_code = external_code
-    saved_item = Structure.update(item)
-    return saved_item
+    db = redis_service.get_connection(settings.REDIS_DB)
+
+    structure = db.hget('structures', external_code)
+    structure = Structure.parse_result(structure)
+
+    logger.info('From DB %s', structure)
+    logger.info('JSON %s', structure.json())
+
+    if structure is None:
+        return None
+
+    structure_dict = item.dict()
+    for key in structure_dict:
+        if key == 'id' or key == 'external_code': continue
+        setattr(structure, key, structure_dict[key])
+
+    json_data = {structure.external_code: structure.json()}
+    db.hmset('structures', json_data)
+
+    return structure

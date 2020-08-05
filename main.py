@@ -3,9 +3,9 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 
+from app.api import api
 from app.core.config import settings
 from app.services.RedisService import redis_service
-from app.router import init_routes as initRouter
 
 main_logger= logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -33,8 +33,8 @@ def create_app() -> FastAPI:
 
     #Create FastAPI app
     app = FastAPI(title='3decision_backend', debug=debug)
+    app.router.include_router(api.api_router)
     app.logger = logger
-    initRouter(app)
     return app
 
 
