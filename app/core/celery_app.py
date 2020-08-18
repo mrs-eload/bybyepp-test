@@ -1,6 +1,5 @@
 from celery import Celery
 from app.core.config import settings
-
-celery_app = Celery("worker", broker="amqp://guest@queue//")
-
-celery_app.conf.task_routes = settings.PROCESS_ROUTES
+import logging
+logger = logging.getLogger('[Celery]')
+celery_app = Celery("app.services.tasks", broker="amqp://guest:guest@local.discngine.com:5672//", backend="redis://localhost/1")

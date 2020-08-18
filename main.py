@@ -1,11 +1,13 @@
 import os, sys
 import logging
 import uvicorn
+from app.core import celery_app
 from fastapi import FastAPI
 
 from app.api import api
 from app.core.config import settings
 from app.services.RedisService import redis_service
+from app.services.tasks import test_celery
 
 main_logger= logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

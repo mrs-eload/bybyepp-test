@@ -1,13 +1,20 @@
 import logging
+import json
 import random
+from time import sleep
+from app.core.response import Responsed
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Body, Response
+from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.models.Structure import Structure
 from app.services.RedisService import redis_service
+from app.services import tasks
+
 
 logger = logging.getLogger('3decision.api.structures')
 router = APIRouter()
+
 
 @router.get("/", response_model=list)
 def read_structures(q: Optional[str] = None):
@@ -15,16 +22,20 @@ def read_structures(q: Optional[str] = None):
     result = db.hgetall('structures')
     return Structure.parse_result(result)
 
+@router.post("/")
+def read_structure(structure: Structure = Body(...), is_async: Optional[bool] = False):
+    res = tasks.register_structure.delay(structure.external_code, structure.json())
+    logger.info('JOB ID %s', res.id)
+    logger.info(res.backend)
+    logger.info(res.status)
+    logger.info(res.worker)
+    if is_async:
+        return res.id
+    else:
+        result = res.get()
+        return JSONResponse(content=json.dumps(result), status_code=result['details']['code'] )
 
-@router.post("/", response_model=Structure)
-def read_structure(structure: Structure = Body(...), q: Optional[str] = None):
-    db = redis_service.get_connection(settings.REDIS_DB)
-    result = db.hget('structures', structure.external_code)
-    result = Structure.parse_result(result)
-    if result is not None: raise HTTPException(303, '/structures/' + result.external_code)
-    structure.id = random.randint(1, 100000)
-    db.hmset('structures', {structure.external_code: structure.json()})
-    return structure
+
 
 
 @router.get("/{external_code}", response_model=Structure)

@@ -33,15 +33,15 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "3decision Backend"
 
     PROCESS_ROUTES: dict = {"app.worker.process": "process-structure"}
-    # SENTRY_DSN: Optional[HttpUrl] = None
-    #
+    SENTRY_DSN: Optional[HttpUrl] = None
+
     # @validator("SENTRY_DSN", pre=True)
     # def sentry_dsn_can_be_blank(cls, v: str) -> Optional[str]:
     #     if len(v) == 0:
     #         return None
     #     return v
-    #
-    # # POSTGRES_SERVER: str
+
+    # POSTGRES_SERVER: str
     # # POSTGRES_USER: str
     # # POSTGRES_PASSWORD: str
     # # POSTGRES_DB: str
