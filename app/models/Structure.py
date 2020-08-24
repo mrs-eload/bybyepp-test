@@ -16,19 +16,7 @@ class Structure (BaseModel):
     biomol_code: Optional[str] = ""
     pdb_file: Optional[str] = ""
     ligands: Optional[List[Ligand]]  = []
-    #
-    # @staticmethod
-    # def find(external_code) -> bytes or None:
-    #     db = redis_service.get_connection(settings.REDIS_DB)
-    #     result = db.hget('structures', external_code)
-    #     return Structure.__parse_result(result)
-    #
-    # @staticmethod
-    # def get_all():
-    #     db = redis_service.get_connection(settings.REDIS_DB)
-    #     results = db.hgetall('structures')
-    #     return Structure.__parse_result(results)
-    #
+
     @staticmethod
     def parse_result(result):
         if result is None:
@@ -49,34 +37,7 @@ class Structure (BaseModel):
             logger.info(type(structure))
             logger.info(structure)
             return structure
-    #
-    # @staticmethod
-    # def update(item):
-    #     db = redis_service.get_connection(settings.REDIS_DB)
-    #
-    #     structure = Structure.find(item.external_code)
-    #     logger.info('From DB %s', structure)
-    #     logger.info('JSON %s', structure.json())
-    #     if structure is None:
-    #         return None
-    #
-    #     structure_dict = item.dict()
-    #     for key in structure_dict:
-    #         if key == 'id' or key == 'external_code': continue
-    #         setattr(structure, key, structure_dict[key])
-    #
-    #     json_data = {structure.external_code: structure.json()}
-    #     db.hmset('structures', json_data)
-    #
-    #     return structure
-    #
-    # def save(self):
-    #     logger.info('Saving %s', self.external_code)
-    #     db = redis_service.get_connection(settings.REDIS_DB)
-    #     json_data = {self.external_code: self.json()}
-    #     db.hmset('structures', json_data)
-    #     return self
-    #
+
     @staticmethod
     def __from_json(serial, structure):
         try:

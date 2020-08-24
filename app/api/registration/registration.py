@@ -3,5 +3,5 @@ import random
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Body
 
-logger = logging.getLogger('3decision.api.registration')
+logger = logging.getLogger('api.registration')
 router = APIRouter()

@@ -1,7 +1,5 @@
 from raven import Client
-import json
 import random
-from time import sleep
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
@@ -17,20 +15,22 @@ client_sentry = Client(settings.SENTRY_DSN)
 def test_celery(word: str) -> str:
     return f"test task return {word}"
 
-
+#Start a celery task, at this point everything must be serialized and out of context
 @celery_app.task(acks_late=True)
 def register_structure(external_code: str, structure: str) -> str:
     logger.info('Starting task structure registration')
-    res = save(external_code=external_code, structure=structure)
+    res = __save(external_code=external_code, i_structure=structure)
     logger.info('Finish structure registration')
     return res
 
-def save(external_code, structure):
+
+#Save and send back results
+def __save(external_code, i_structure):
     db = redis_service.connect(settings.REDIS_DB)
     result = db.hget('structures', external_code)
     result = Structure.parse_result(result)
-    struc = Structure.parse_result(structure)
+    structure = Structure.parse_result(i_structure)
     if result is not None: return {'status': 'error', 'details' : {'code': 303, 'url': '/structures/' + result.external_code}}
-    struc.id = random.randint(1, 100000)
-    db.hmset('structures', {struc.external_code: struc.json()})
-    return {'status': 'success', 'details': {'code': 200, 'structure': structure}}
+    structure.id = random.randint(1, 100000)
+    db.hmset('structures', {structure.external_code: structure.json()})
+    return {'status': 'success', 'details': {'code': 200, 'structure': i_structure}}

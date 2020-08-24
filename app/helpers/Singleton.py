@@ -1,4 +1,4 @@
-
+# Simple Singleton class, never touch this
 class Singleton(type):
     _instances = {}
     def __call__(cls, *args, **kwargs):

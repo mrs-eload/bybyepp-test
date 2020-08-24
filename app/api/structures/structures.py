@@ -2,7 +2,6 @@ import logging
 import json
 import random
 from time import sleep
-from app.core.response import Responsed
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Body, Response
 from fastapi.responses import JSONResponse
@@ -12,7 +11,7 @@ from app.services.RedisService import redis_service
 from app.services import tasks
 
 
-logger = logging.getLogger('3decision.api.structures')
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -22,13 +21,14 @@ def read_structures(q: Optional[str] = None):
     result = db.hgetall('structures')
     return Structure.parse_result(result)
 
+
+# Will register a new structure
+# @param is_async : True will return a job id (celery task number), False will wait for the job to finish and send the results
+# Async job results retrieval is not done yet
 @router.post("/")
 def read_structure(structure: Structure = Body(...), is_async: Optional[bool] = False):
     res = tasks.register_structure.delay(structure.external_code, structure.json())
     logger.info('JOB ID %s', res.id)
-    logger.info(res.backend)
-    logger.info(res.status)
-    logger.info(res.worker)
     if is_async:
         return res.id
     else:

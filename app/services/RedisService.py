@@ -9,9 +9,11 @@ class RedisService(metaclass=Singleton):
     def __init__(self):
         self.__connections = {}
 
+    # Get existing Redis connection
     def get_connection(self, name: str) -> redis.Redis:
         return self.__connections.get(name)
 
+    # Create new connection to a Redis database
     def connect(self, name=None, db=0, host="127.0.0.1", port=6379):
         logger.debug('Trying to connect to Redis using %s', (host + ':' + str(port) + ' db:' + str(db)))
 
