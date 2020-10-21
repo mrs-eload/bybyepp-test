@@ -14,6 +14,7 @@ def read_root():
 
 #models
 api_router.include_router(structures.router, prefix="/structures", tags=["structures"])
+api_router.include_router(structures.router, prefix="/ws/structures", tags=["structures"])
 # api_router.include_router(ligands.router, prefix="/ligands", tags=["ligands"])
 # api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
 

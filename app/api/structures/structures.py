@@ -1,19 +1,42 @@
 import logging
-import json
+import json, os, shutil
 import random
 from time import sleep
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Body, Response
+from fastapi import APIRouter, HTTPException, Body, Response, WebSocket, Depends, Cookie, Query, UploadFile, File, Path
 from fastapi.responses import JSONResponse
+from starlette import status
+from starlette.websockets import WebSocketDisconnect
+
 from app.core.config import settings
 from app.models.Structure import Structure
 from app.services.RedisService import redis_service
-from app.services import tasks
+from app.workers import tasks
 
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
 
 @router.get("/", response_model=list)
 def read_structures(q: Optional[str] = None):
@@ -22,19 +45,69 @@ def read_structures(q: Optional[str] = None):
     return Structure.parse_result(result)
 
 
+@router.post("/import")
+def import_structure(file: UploadFile = File(...)):
+    destination = os.path.join(settings.PROJECT_PATH, 'saves', file.filename)
+    try:
+        logger.info(file.filename)
+        with open(destination, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    finally:
+        file.file.close()
+
+    res = tasks.launch_remote_process.delay()
+    result = res.get()
+    logger.info(result)
+    return "OK"
+
 # Will register a new structure
 # @param is_async : True will return a job id (celery task number), False will wait for the job to finish and send the results
 # Async job results retrieval is not done yet
 @router.post("/")
 def read_structure(structure: Structure = Body(...), is_async: Optional[bool] = False):
-    res = tasks.register_structure.delay(structure.external_code, structure.json())
+    res = tasks.launch_remote_process.delay(structure.external_code, structure.json())
     logger.info('JOB ID %s', res.id)
-    if is_async:
-        return res.id
-    else:
-        result = res.get()
-        return JSONResponse(content=json.dumps(result), status_code=result['details']['code'] )
+    return "Itsokay"
+    # res = tasks.register_structure.delay(structure.external_code, structure.json())
+    # if is_async:
+    #     return res.id
+    # else:
+    #     result = res.get()
+    #     return JSONResponse(content=json.dumps(result), status_code=result['details']['code'] )
 
+@router.websocket("/ws/get")
+async def websocket_endpoint(websocket: WebSocket):
+
+    await websocket.accept()
+    while True:
+        try:
+            data = await websocket.receive_text()
+            db = redis_service.get_connection(settings.REDIS_DB)
+            result = db.hget('structures', data)
+            result = Structure.parse_result(result)
+            logger.info(data)
+            logger.info(type(data))
+            await websocket.send_json(result.dict())
+        except json.JSONDecodeError:
+            await websocket.send_json({"data": "error"})
+
+@router.websocket("/ws/getall")
+async def websocket_endpoint(websocket: WebSocket):
+
+    db = redis_service.get_connection(settings.REDIS_DB)
+    result = db.hgetall('structures')
+    result = Structure.parse_result(result)
+
+    await websocket.accept()
+    while True:
+        try:
+            data = await websocket.receive_json()
+            logger.info(data)
+            logger.info(type(data))
+            for val in result:
+                await websocket.send_json(val.dict())
+        except json.JSONDecodeError:
+            await websocket.send_json({"data": "error"})
 
 
 

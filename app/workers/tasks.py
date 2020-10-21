@@ -1,5 +1,6 @@
 from raven import Client
 import random
+import subprocess
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
@@ -22,6 +23,15 @@ def register_structure(external_code: str, structure: str) -> str:
     res = __save(external_code=external_code, i_structure=structure)
     logger.info('Finish structure registration')
     return res
+
+@celery_app.task()
+def launch_remote_process():
+    logger.info('Starting process spawn')
+    proc = subprocess.Popen(['python3', '-u', 'external_script.py'])
+    out, err = proc.communicate()
+    proc.wait()
+    return out
+
 
 
 #Save and send back results

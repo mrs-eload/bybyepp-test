@@ -1,4 +1,4 @@
-import secrets
+import secrets, os
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import AnyHttpUrl, BaseSettings, EmailStr, HttpUrl, PostgresDsn, validator
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         raise ValueError(v)
 
     PROJECT_NAME: str = "3decision Backend"
-
+    PROJECT_PATH = os.getcwd()
     PROCESS_ROUTES: dict = {"app.worker.process": "process-structure"}
     SENTRY_DSN: Optional[HttpUrl] = None
 

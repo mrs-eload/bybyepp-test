@@ -1,7 +1,7 @@
 # Installation
 ## Requirements
 - Python >= 3.7
-- Docker
+- Docker (https://docs.docker.com/engine/install/ubuntu/)
 - Redis
 - Rabbit MQ
 - Netdata (optional)
@@ -44,6 +44,10 @@ Should change your console as:
 ## Redis (runtime)
 
 `(byebyepp) mrs-eload:~$ sudo apt install -y redis`
+ 
+## RabbitMQ (runtime)
+
+`(byebyepp) mrs-eload:~$ docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management`
 
 ## Project dependencies
 This should install celery, flower etc...
@@ -78,6 +82,6 @@ Flower will be available on http://localhost:5555
 
 Server will be available on http://localhost:8080
 
-### (Optional) Netdata installation
+### (Optional) Netdata ibbitnstallation
 
 `(byebyepp) mrs-eload:~/byebyepp-test$ bash <(curl -Ss https://my-netdata.io/kickstart.sh)`

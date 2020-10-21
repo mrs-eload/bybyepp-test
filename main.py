@@ -8,6 +8,7 @@ import uvicorn
 import random
 from fastapi import FastAPI, Request
 
+import app.workers.tasks as tasks
 from app.api import api
 from app.core.config import settings
 from app.services.RedisService import redis_service
@@ -61,4 +62,4 @@ async def log_requests(request: Request, call_next):
 
 #If running in IDE spawn own uvicorn server instance
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, use_colors=True)
+    uvicorn.run(app, host="0.0.0.0", port=5500, use_colors=True)

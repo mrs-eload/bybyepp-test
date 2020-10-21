@@ -3,5 +3,5 @@ import random
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Body
 
-logger = logging.getLogger('api.search')
+logger = logging.getLogger(__name__)
 router = APIRouter()

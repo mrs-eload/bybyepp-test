@@ -1,5 +1,7 @@
 from celery import Celery
+import os
 import logging
+import app.workers.tasks
 logger = logging.getLogger(__name__)
 
 # Bind python to running celery instance
